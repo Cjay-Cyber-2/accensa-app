@@ -62,10 +62,17 @@ export function initWidgetHost(options: WidgetHostOptions = {}): () => void {
         if (onReady) onReady();
         break;
       case 'success':
-        if (onSuccess) onSuccess(message.payload?.txHash || '');
+        if (onSuccess) {
+          const txHash = typeof message.payload?.txHash === 'string' ? message.payload.txHash : '';
+          onSuccess(txHash);
+        }
         break;
       case 'error':
-        if (onError) onError(message.payload?.error || 'Unknown error');
+        if (onError) {
+          const errorMessage =
+            typeof message.payload?.error === 'string' ? message.payload.error : 'Unknown error';
+          onError(errorMessage);
+        }
         break;
       case 'resize':
         // Handle widget resize requests

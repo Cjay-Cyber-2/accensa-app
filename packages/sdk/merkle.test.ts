@@ -83,7 +83,7 @@ describe('verifyReceipt — malformed input and length bounds', () => {
   it('rejects non-string inputs', () => {
     // @ts-expect-error Intentionally passing invalid types to ensure runtime guard works
     expect(() => verifyReceipt(123, [], VALID)).toThrow(MerkleError);
-    // @ts-expect-error
+    // @ts-expect-error Invalid proof entry exercises the runtime guard.
     expect(() => verifyReceipt(VALID, [null], VALID)).toThrow(MerkleError);
   });
 
@@ -127,7 +127,7 @@ describe('buildBatch — proofs verify against the shared convention', () => {
 
   it('throws on an empty input rather than inventing a zero root', () => {
     expect(() => buildBatch([])).toThrow(EmptyBatchError);
-    // @ts-expect-error
+    // @ts-expect-error Null input exercises the runtime guard.
     expect(() => buildBatch(null)).toThrow(EmptyBatchError);
   });
 
@@ -155,7 +155,7 @@ describe('receiptLeaf — production preimage', () => {
   });
 
   it('rejects non-string values gracefully', () => {
-    // @ts-expect-error
+    // @ts-expect-error Invalid input exercises the runtime guard.
     expect(() => receiptLeaf(123)).toThrow(TypeError); // String methods fail before decodeHash
   });
 });

@@ -102,6 +102,7 @@ export async function submitDispute(
             request.reason.toString(),
             request.description,
           ],
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- placeholder until the escrow contract ABI is available
         } as any,
       )
       .setTimeout(30)

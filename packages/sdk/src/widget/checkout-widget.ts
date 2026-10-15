@@ -25,13 +25,13 @@ export interface CheckoutConfig {
 
 export interface WidgetMessage {
   type: 'init' | 'pay' | 'success' | 'error' | 'resize' | 'ready';
-  payload?: any;
+  payload?: Record<string, unknown>;
   id?: string;
 }
 
 export interface ParentMessage {
   type: 'config' | 'pay' | 'cancel';
-  payload?: any;
+  payload?: Record<string, unknown>;
   id?: string;
 }
 
@@ -276,20 +276,23 @@ class AccensaCheckoutWidget extends HTMLElementBase {
       });
 
       if (response.type === 'success') {
+        const txHash = typeof response.payload?.txHash === 'string' ? response.payload.txHash : '';
         this.postMessage({
           type: 'success',
-          payload: { txHash: response.payload?.txHash },
+          payload: { txHash },
         });
         if (this.config.onSuccess) {
-          this.config.onSuccess(response.payload?.txHash);
+          this.config.onSuccess(txHash);
         }
       } else if (response.type === 'error') {
+        const errorMessage =
+          typeof response.payload?.error === 'string' ? response.payload.error : 'Payment failed';
         this.postMessage({
           type: 'error',
-          payload: { error: response.payload?.error },
+          payload: { error: errorMessage },
         });
         if (this.config.onError) {
-          this.config.onError(response.payload?.error);
+          this.config.onError(errorMessage);
         }
       }
     } catch (error) {

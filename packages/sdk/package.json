@@ -46,7 +46,7 @@
   "scripts": {
     "build": "tsup",
     "prepack": "pnpm build",
-    "lint": "echo 'No lint configured for @accensa/sdk'",
+    "lint": "node scripts/check-lint-scripts.mjs && ../../apps/web/node_modules/.bin/eslint --config eslint.config.mjs .",
     "test": "vitest run",
     "test:watch": "vitest",
     "bench": "vitest bench",

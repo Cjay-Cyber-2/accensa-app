@@ -31,7 +31,7 @@ export interface SignedTransaction {
  * For production, use @stellar/stellar-sdk's native signing.
  */
 export class LocalSigner {
-  private keyPair: CryptoKeyPair | null = null;
+  private keyPair: CryptoKey | null = null;
   private publicKeyStr: string;
 
   private constructor(publicKey: string) {
@@ -61,13 +61,13 @@ export class LocalSigner {
         hash: 'SHA-256',
       },
       keyMaterial,
-      { name: 'Ed25519' } as any,
+      { name: 'Ed25519' } as AlgorithmIdentifier,
       false,
       ['sign', 'verify'],
     );
 
     const signer = new LocalSigner(`signer:${secret.slice(0, 8)}`);
-    signer.keyPair = keyPair as any;
+    signer.keyPair = keyPair;
     return signer;
   }
 

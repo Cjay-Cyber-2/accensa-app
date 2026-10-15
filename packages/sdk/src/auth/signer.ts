@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { Keypair, xdr, TransactionBuilder, Contract, Account, Address } from '@stellar/stellar-sdk';
 import { buildSorobanAuthEntry, type SorobanAuthEntryInput } from './builder';
 
@@ -48,7 +49,6 @@ export function signOfflineTransaction(input: OfflineSigningInput): {
 
   // The transaction hash is the SHA-256 of the signature base (the bytes the
   // signatures are made over), matching what the network computes.
-  const { createHash } = require('crypto') as typeof import('crypto');
   const transactionHash = createHash('sha256').update(transaction.signatureBase()).digest('hex');
 
   return {
