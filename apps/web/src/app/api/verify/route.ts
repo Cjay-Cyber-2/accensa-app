@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import { verifyReceipt } from '@accensa/sdk/merkle';
+import { MAX_PROOF_LEN, verifyReceipt } from '@accensa/sdk/merkle';
 import { verifyReceiptOnChain, getBatch, isHash32, RECEIPT_ANCHOR_ID } from '@/lib/receipt-anchor';
+import { rateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
+const MAX_VERIFY_PROOF_LENGTH = MAX_PROOF_LEN;
 
 export interface VerifyRequest {
   batchId: number;
@@ -48,6 +50,28 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: 'proof must be an array of hex-encoded 32-byte hashes' },
       { status: 400 },
+    );
+  }
+  if (proof.length > MAX_VERIFY_PROOF_LENGTH) {
+    return NextResponse.json(
+      { error: `proof must contain at most ${MAX_VERIFY_PROOF_LENGTH} hashes` },
+      { status: 400 },
+    );
+  }
+
+  const forwardedFor =
+    request.headers.get('x-real-ip') ?? request.headers.get('x-forwarded-for') ?? 'unknown';
+  const ip = forwardedFor.split(',')[0].trim();
+  const limit = await rateLimit(ip);
+  if (!limit.success) {
+    return NextResponse.json(
+      { error: 'Too many verification attempts' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(Math.max(1, Math.ceil((limit.reset - Date.now()) / 1000))),
+        },
+      },
     );
   }
 
