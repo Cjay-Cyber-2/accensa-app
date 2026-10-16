@@ -9,11 +9,11 @@ import {
   type WalletStatus,
 } from '@/lib/wallet';
 
+import { getStellarNetwork, type StellarNetworkConfig } from '@/lib/auth/stellarAuth';
+
 const PROVIDERS = getWalletAdapters().filter((adapter) =>
   ['freighter', 'xbull', 'hana'].includes(adapter.providerId ?? ''),
 );
-const TESTNET_PASSPHRASE = 'Test SDF Network ; September 2015';
-const PUBLIC_PASSPHRASE = 'Public Global Stellar Network ; September 2015';
 
 export interface ConnectedWallet {
   provider: string;
@@ -25,18 +25,11 @@ interface ProviderState {
   status: WalletStatus;
 }
 
-interface WalletConnectModalProps {
+export interface WalletConnectModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConnected?: (wallet: ConnectedWallet) => void;
-}
-
-function expectedNetworkPassphrase(): string {
-  const configured = process.env.NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE;
-  if (configured) return configured;
-  return process.env.NEXT_PUBLIC_STELLAR_NETWORK?.toLowerCase() === 'mainnet'
-    ? PUBLIC_PASSPHRASE
-    : TESTNET_PASSPHRASE;
+  network?: StellarNetworkConfig;
 }
 
 function readStoredProvider(): string | null {
@@ -68,7 +61,13 @@ function statusText(status: WalletStatus): string {
   }
 }
 
-export function WalletConnectModal({ open, onOpenChange, onConnected }: WalletConnectModalProps) {
+export function WalletConnectModal({
+  open,
+  onOpenChange,
+  onConnected,
+  network,
+}: WalletConnectModalProps) {
+  const activeNetwork = network ?? getStellarNetwork();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [providerStates, setProviderStates] = useState<ProviderState[]>(() =>
     PROVIDERS.map((adapter) => ({ adapter, status: { kind: 'disconnected' } })),
@@ -109,9 +108,7 @@ export function WalletConnectModal({ open, onOpenChange, onConnected }: WalletCo
     let active = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(null);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPreferredProvider(readStoredProvider());
     void Promise.all(
       PROVIDERS.map(async (adapter): Promise<ProviderState> => ({
@@ -127,10 +124,10 @@ export function WalletConnectModal({ open, onOpenChange, onConnected }: WalletCo
         );
         if (
           connected?.status.kind === 'connected' &&
-          connected.status.networkPassphrase !== expectedNetworkPassphrase()
+          connected.status.networkPassphrase !== activeNetwork.passphrase
         ) {
           setNetworkWarning(
-            `This wallet is connected to ${connected.status.network ?? 'a different Stellar network'}. The app is configured for ${process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'testnet'}.`,
+            `This wallet is connected to ${connected.status.network ?? 'a different Stellar network'}. The app is configured for ${activeNetwork.name}.`,
           );
         } else {
           setNetworkWarning(null);
@@ -145,7 +142,7 @@ export function WalletConnectModal({ open, onOpenChange, onConnected }: WalletCo
     return () => {
       active = false;
     };
-  }, [open]);
+  }, [open, activeNetwork.name, activeNetwork.passphrase]);
 
   async function connect(adapter: WalletAdapter, currentStatus: WalletStatus) {
     setConnecting(adapter.name);
@@ -167,9 +164,9 @@ export function WalletConnectModal({ open, onOpenChange, onConnected }: WalletCo
       );
       onConnected?.({ provider: adapter.name, address: status.address });
 
-      if (status.networkPassphrase && status.networkPassphrase !== expectedNetworkPassphrase()) {
+      if (status.networkPassphrase && status.networkPassphrase !== activeNetwork.passphrase) {
         setNetworkWarning(
-          `Your wallet is connected to ${status.network ?? 'a different Stellar network'}, but this app is configured for ${process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'testnet'}.`,
+          `Your wallet is connected to ${status.network ?? 'a different Stellar network'}, but this app is configured for ${activeNetwork.name}.`,
         );
       } else {
         setNetworkWarning(null);
