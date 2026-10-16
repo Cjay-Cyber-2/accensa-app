@@ -5,6 +5,8 @@ description: 'Understand how Accensa app, contracts, and facilitator repositorie
 keywords: [x402, Stellar, Soroban, receipt anchoring]
 ---
 
+import { ArchitectureDiagram } from '../components/ArchitectureDiagram';
+
 # Architecture & Repository Boundaries
 
 The Accensa ecosystem spans three repositories. Each has a distinct role, and understanding the boundaries between them is essential for integrators and reviewers alike.
@@ -31,17 +33,24 @@ A Next.js dashboard and indexer that sits **downstream** of a facilitator. It re
 
 ### `accensa-contracts` — On-Chain Trust Layer
 
-Soroban smart contracts (`ReceiptAnchor`, `RefundVault`) that provide the on-chain source of truth for verifiable receipts and trustless refunds.
+Soroban smart contracts (`ReceiptAnchor`, `RefundVault`, `Multisig`, `Channel`, `Shard`) that provide the on-chain source of truth for verifiable receipts, micropayment channels, and trustless refunds.
 
 **What it does:**
 
 - Stores batch Merkle roots on-chain for receipt verification
 - Manages a refund vault for trustless merchant-initiated refunds
+- Coordinates state channels and dispute settlement
 
 **What it does not do:**
 
 - Process or verify x402 payments — it has no knowledge of the x402 protocol
 - Handle off-chain business logic
+
+## Interactive Soroban Contract Architecture
+
+Explore the Soroban smart contracts, state partitions, payment flow, dispute lifecycle, and receipt anchoring paths below:
+
+<ArchitectureDiagram />
 
 ### `x402-facilitator-stellar` — x402 Payment Facilitator
 

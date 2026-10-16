@@ -2,17 +2,37 @@
 
 import React, { useState } from 'react';
 import { useCheckout } from '../../context/CheckoutContext';
+import TaxLineItem from './TaxLineItem';
+import type {
+  MerchantTaxRule,
+  ProductTaxClassification,
+  TaxBreakdown,
+} from '../../src/lib/tax/taxService';
 
 const QUICK_PERCENTS = [10, 15, 20];
 
+export interface TipSelectorProps {
+  country?: string;
+  postalCode?: string;
+  classification?: ProductTaxClassification;
+  taxRule?: MerchantTaxRule;
+  onTaxCalculated?: (tax: TaxBreakdown) => void;
+}
+
 /**
- * Gratuity prompt for the checkout flow (#426).
+ * Gratuity prompt and checkout totals summary for the checkout flow (#426, #TaxCalculator).
  *
  * Renders nothing when the merchant has disabled tip prompts
  * (`CheckoutProvider`'s `tipEnabled={false}`), so embedding it is safe even
  * when the preference is unknown ahead of render.
  */
-export default function TipSelector() {
+export default function TipSelector({
+  country,
+  postalCode,
+  classification,
+  taxRule,
+  onTaxCalculated,
+}: TipSelectorProps = {}) {
   const {
     tipEnabled,
     tipPercent,
@@ -26,6 +46,7 @@ export default function TipSelector() {
   } = useCheckout();
   const [customOpen, setCustomOpen] = useState(false);
   const [customInput, setCustomInput] = useState('');
+  const [calculatedTax, setCalculatedTax] = useState(0);
 
   if (!tipEnabled) return null;
 
@@ -124,9 +145,22 @@ export default function TipSelector() {
           <span>Tip</span>
           <span data-testid="checkout-tip">{tipAmount.toFixed(2)}</span>
         </div>
+        {Boolean(country || postalCode || taxRule) && (
+          <TaxLineItem
+            subtotal={subtotal}
+            country={country}
+            postalCode={postalCode}
+            classification={classification}
+            rule={taxRule}
+            onTaxCalculated={(tax) => {
+              setCalculatedTax(tax.amount);
+              onTaxCalculated?.(tax);
+            }}
+          />
+        )}
         <div className="flex justify-between font-semibold text-gray-900">
           <span>Total</span>
-          <span data-testid="checkout-total">{total.toFixed(2)}</span>
+          <span data-testid="checkout-total">{(total + calculatedTax).toFixed(2)}</span>
         </div>
       </div>
     </div>

@@ -4,6 +4,8 @@ import {
   buildChallengeTransaction,
   CHALLENGE_OPERATION,
   parseChallengeXdr,
+  resolveStellarNetwork,
+  StellarNetworkConfigurationError,
   verifyChallengeSignature,
 } from './stellarAuth';
 
@@ -40,5 +42,43 @@ describe('stellar auth primitives', () => {
     const transaction = buildChallengeTransaction(keypair.publicKey(), 'b'.repeat(64), 100);
     transaction.sign(Keypair.random());
     expect(verifyChallengeSignature(transaction, keypair.publicKey())).toBe(false);
+  });
+
+  it('builds and verifies a challenge on a non-default network (mainnet)', () => {
+    const mainnetPassphrase = Networks.PUBLIC;
+    const transaction = buildChallengeTransaction(
+      keypair.publicKey(),
+      'c'.repeat(64),
+      100,
+      mainnetPassphrase,
+    );
+    transaction.sign(keypair);
+    const parsed = parseChallengeXdr(transaction.toXDR(), 101, mainnetPassphrase);
+
+    expect(parsed.merchantAddress).toBe(keypair.publicKey());
+    expect(parsed.nonce).toBe('c'.repeat(64));
+    expect(verifyChallengeSignature(parsed.transaction, keypair.publicKey())).toBe(true);
+  });
+
+  it('resolves recognised mainnet passphrase and network name to mainnet descriptor', () => {
+    const fromPassphrase = resolveStellarNetwork({ passphrase: Networks.PUBLIC });
+    expect(fromPassphrase.name).toBe('mainnet');
+    expect(fromPassphrase.passphrase).toBe(Networks.PUBLIC);
+
+    const fromName = resolveStellarNetwork({ network: 'mainnet' });
+    expect(fromName.name).toBe('mainnet');
+    expect(fromName.passphrase).toBe(Networks.PUBLIC);
+  });
+
+  it('rejects an unrecognised passphrase with a named configuration error', () => {
+    expect(() => resolveStellarNetwork({ passphrase: 'Unrecognised Network ; Year 3000' })).toThrow(
+      StellarNetworkConfigurationError,
+    );
+  });
+
+  it('rejects an unrecognised network name with a named configuration error', () => {
+    expect(() => resolveStellarNetwork({ network: 'unknown-chain' })).toThrow(
+      StellarNetworkConfigurationError,
+    );
   });
 });
