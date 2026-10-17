@@ -44,6 +44,22 @@ cross-check is the point.
 
 ## Running it
 
+CLI flags take precedence over their matching environment variable; when both
+are absent, the listed default or required-input behavior applies. These are
+all the environment variables read by `cli.mjs`; `db.mjs` reads none directly.
+
+| Environment variable | Overriding flag        | Default                                                                                 | If no flag or environment value is provided                                                    |
+| -------------------- | ---------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `MERCHANT_ADDRESS`   | `--merchant`           | None                                                                                    | Required; prints usage and exits with status 2.                                                |
+| `STELLAR_RPC_URL`    | `--rpc-url`            | `https://soroban-testnet.stellar.org`                                                   | Uses the testnet Soroban RPC endpoint.                                                         |
+| `ASSET_CONTRACT_IDS` | `--asset-contract-ids` | `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` (the testnet native XLM SAC) | Rebuilds only the default asset set; set this explicitly to include other assets such as USDC. |
+| `DATABASE_URL`       | `--database-url`       | None                                                                                    | Runs rebuild-only: no database connection or production diff.                                  |
+
+`DATABASE_URL` is a credential. If you supply it, use a private value in the
+environment or a secret manager; do not put a real connection string in shell
+history or a committed file. The accepted shape is a PostgreSQL connection URL
+such as `postgres://USER:PASSWORD@HOST:5432/DB`.
+
 Two modes, selected by whether `--database-url` / `DATABASE_URL` is given.
 
 ### 1. Rebuild-only — for anyone, with no Accensa infrastructure access
