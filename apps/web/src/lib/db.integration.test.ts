@@ -155,15 +155,57 @@ describe('Database Integration', () => {
       expect(definitions.get('idx_payments_merchant_ts_txhash')).toContain(
         '(merchant_id, ts DESC, tx_hash DESC)',
       );
-      expect(definitions.get('idx_payments_merchant_route')).toContain(
-        'WHERE (route IS NOT NULL)',
-      );
-      expect(definitions.get('idx_payments_merchant_payer')).toContain(
-        'WHERE (payer IS NOT NULL)',
-      );
-      expect(definitions.get('idx_payments_merchant_asset')).toContain(
-        'WHERE (asset IS NOT NULL)',
-      );
+      expect(definitions.get('idx_payments_merchant_route')).toContain('WHERE (route IS NOT NULL)');
+      expect(definitions.get('idx_payments_merchant_payer')).toContain('WHERE (payer IS NOT NULL)');
+      expect(definitions.get('idx_payments_merchant_asset')).toContain('WHERE (asset IS NOT NULL)');
+
+      await client.query('BEGIN');
+      try {
+        await client.query('SET LOCAL enable_seqscan = off');
+        const plans = [
+          {
+            name: 'route filter',
+            index: 'idx_payments_merchant_route',
+            sql: 'EXPLAIN SELECT tx_hash FROM payments WHERE merchant_id = $1 AND route = $2',
+            values: ['00000000-0000-0000-0000-000000000001', '/checkout'],
+          },
+          {
+            name: 'payer filter',
+            index: 'idx_payments_merchant_payer',
+            sql: 'EXPLAIN SELECT tx_hash FROM payments WHERE merchant_id = $1 AND payer = $2',
+            values: ['00000000-0000-0000-0000-000000000001', 'G'.padEnd(56, 'A')],
+          },
+          {
+            name: 'asset filter',
+            index: 'idx_payments_merchant_asset',
+            sql: 'EXPLAIN SELECT tx_hash FROM payments WHERE merchant_id = $1 AND asset = $2',
+            values: ['00000000-0000-0000-0000-000000000001', 'USDC'],
+          },
+          {
+            name: 'keyset page',
+            index: 'idx_payments_merchant_ts_txhash',
+            sql: `EXPLAIN SELECT tx_hash FROM payments
+                  WHERE merchant_id = $1 AND ts IS NOT NULL
+                    AND (ts < $2 OR (ts = $2 AND tx_hash < $3))
+                  ORDER BY ts DESC, tx_hash DESC LIMIT $4`,
+            values: [
+              '00000000-0000-0000-0000-000000000001',
+              '2026-01-01T00:00:00Z',
+              'f'.repeat(64),
+              20,
+            ],
+          },
+        ];
+
+        for (const { name, index, sql, values } of plans) {
+          const { rows: planRows } = await client.query<{ 'QUERY PLAN': string }>(sql, values);
+          const plan = planRows.map(({ 'QUERY PLAN': line }) => line).join('\n');
+          console.info(`EXPLAIN ${name}:\n${plan}`);
+          expect(plan, `${name} should use ${index}`).toContain(index);
+        }
+      } finally {
+        await client.query('ROLLBACK');
+      }
     });
   });
 
