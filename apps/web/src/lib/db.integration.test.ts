@@ -119,6 +119,54 @@ describe('Database Integration', () => {
     });
   });
 
+  it('creates every payments index declared by migrations 004 and 006', async () => {
+    if (!process.env.DATABASE_URL) {
+      console.warn('Skipping integration test as DATABASE_URL is missing');
+      return;
+    }
+
+    const expectedIndexes = [
+      'idx_payments_hook_reported',
+      'idx_payments_merchant_ts_txhash',
+      'idx_payments_merchant_route',
+      'idx_payments_merchant_payer',
+      'idx_payments_merchant_asset',
+    ];
+
+    await withClient(async (client) => {
+      // Re-running ensureSchema must remain safe on a database with these indexes.
+      await ensureSchema(client);
+      await ensureSchema(client);
+
+      const { rows } = await client.query<{ indexname: string; indexdef: string }>(
+        `SELECT indexname, indexdef
+         FROM pg_indexes
+         WHERE schemaname = current_schema()
+           AND tablename = 'payments'
+           AND indexname = ANY($1::text[])`,
+        [expectedIndexes],
+      );
+      const definitions = new Map(rows.map(({ indexname, indexdef }) => [indexname, indexdef]));
+
+      expect([...definitions.keys()].sort()).toEqual([...expectedIndexes].sort());
+      expect(definitions.get('idx_payments_hook_reported')).toContain(
+        'WHERE (hook_reported_at IS NOT NULL)',
+      );
+      expect(definitions.get('idx_payments_merchant_ts_txhash')).toContain(
+        '(merchant_id, ts DESC, tx_hash DESC)',
+      );
+      expect(definitions.get('idx_payments_merchant_route')).toContain(
+        'WHERE (route IS NOT NULL)',
+      );
+      expect(definitions.get('idx_payments_merchant_payer')).toContain(
+        'WHERE (payer IS NOT NULL)',
+      );
+      expect(definitions.get('idx_payments_merchant_asset')).toContain(
+        'WHERE (asset IS NOT NULL)',
+      );
+    });
+  });
+
   it('advances each merchant’s cursor independently, including a quiet merchant with no activity', async () => {
     if (!process.env.DATABASE_URL) {
       console.warn('Skipping integration test as DATABASE_URL is missing');
