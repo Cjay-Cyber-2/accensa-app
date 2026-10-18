@@ -61,7 +61,7 @@ export default defineConfig([
       'types/index': 'src/types/index.ts',
       webhooks: 'webhooks.ts',
       retry: 'retry.ts',
-      currency: 'src/currency.ts',
+  
       'zk-proof': 'src/zk-proof.ts',
       'events/index': 'src/events/index.ts',
       'subscription/index': 'src/subscription/index.ts',
