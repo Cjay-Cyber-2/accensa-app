@@ -140,6 +140,14 @@ jobs:
             console.log('CJS: merkle entry OK');
           "
 
+          # Every remaining package export must resolve from the packed tarball.
+          node -e "
+            for (const subpath of ['receipt-anchor', 'receipt-anchor-client', 'types', 'webhooks', 'retry', 'zk-proof', 'events', 'subscription', 'session/express']) {
+              require('@accensa/sdk/' + subpath);
+              console.log('CJS: ' + subpath + ' entry OK');
+            }
+          "
+
           # Test ESM import
           cat > "$SCRATCH/test.mjs" << 'EOF'
           import { verifyReceipt, attachAccensaHook, createSettleHook } from '@accensa/sdk';
@@ -149,7 +157,11 @@ jobs:
           if (typeof attachAccensaHook !== 'function') throw new Error('attachAccensaHook not exported');
           if (typeof createSettleHook !== 'function') throw new Error('createSettleHook not exported');
           if (typeof vr !== 'function') throw new Error('verifyReceipt not exported from /merkle');
-          console.log('ESM: both entries OK');
+          for (const subpath of ['receipt-anchor', 'receipt-anchor-client', 'types', 'webhooks', 'retry', 'zk-proof', 'events', 'subscription', 'session/express']) {
+            await import('@accensa/sdk/' + subpath);
+            console.log('ESM: ' + subpath + ' entry OK');
+          }
+          console.log('ESM: all entries OK');
           EOF
           node "$SCRATCH/test.mjs"
 
