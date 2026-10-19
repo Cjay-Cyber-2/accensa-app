@@ -31,11 +31,7 @@
     "./types": "./src/types/index.ts",
     "./webhooks": "./webhooks.ts",
     "./retry": "./retry.ts",
-    "./currency": {
-      "types": "./dist/src/currency.d.ts",
-      "import": "./dist/src/currency.mjs",
-      "require": "./dist/src/currency.js"
-    },
+    "./currency": "./src/currency.ts",
     "./zk-proof": "./src/zk-proof.ts",
     "./events": "./src/events/index.ts",
     "./subscription": "./src/subscription/index.ts",
